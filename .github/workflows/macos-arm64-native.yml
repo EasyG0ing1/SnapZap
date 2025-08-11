@@ -1,0 +1,59 @@
+name: macOS ARM64 native image
+
+on:
+  push:
+    tags: ['v*']   # build & publish when you push a tag like v1.0.1
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+jobs:
+  build-arm64:
+    runs-on: macos-14   # Apple‑silicon runner
+    permissions:
+      contents: write   # required to attach assets to a release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GraalVM (ARM64)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          distribution: graalvm
+          java-version: '25-ea'     # matches your pom (Java 25); use '24' if you prefer stable
+          components: 'native-image' # installs the native-image tool
+          cache: 'maven'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native image (Maven profile 'native')
+        run: mvn -Pnative -B -ntp -DskipTests package
+
+      - name: Package artifact and checksum
+        id: pkg
+        shell: bash
+        run: |
+          VER=$(mvn -q -Dexpression=project.version help:evaluate -DforceStdout)
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+
+          # Your pom outputs to native-image/SnapZap; Homebrew expects 'snapzap'
+          cd native-image
+          [ -f SnapZap ] && mv SnapZap snapzap
+
+          TARBALL="snapzap-${VER}-macos-arm64.tar.gz"
+          tar -czf "$TARBALL" snapzap
+          shasum -a 256 "$TARBALL" | tee "../${TARBALL}.sha256"
+
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapzap-macos-arm64
+          path: |
+            native-image/snapzap-*-macos-arm64.tar.gz
+            snapzap-*-macos-arm64.sha256
+
+      - name: Attach to GitHub Release (on tag or manual)
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            native-image/snapzap-*-macos-arm64.tar.gz
+            snapzap-*-macos-arm64.sha256
+          prerelease: false
