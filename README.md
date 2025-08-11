@@ -7,7 +7,16 @@
   <p>I needed an easy way to remove snapshots from my APFS volumes, so I wrote this simple little command line utility to handle that for me.</p>
 
 <h2 id="toc_1" style="border-bottom:1px solid rgba(255,255,255,.2); padding-bottom:.3em;">Installation</h2>
-  <p>Soon...</p>
+  <p>The code was compiled into a MacOS Native Binary and does not need Java to run. So you have two options:</p>
+<p>1) Download the zip file from the <a href="https://github.com/EasyG0ing1/SnapZap/releases/latest">latest release</a> page, unzip the file and put it in a folder in your path (such as ~/.local/bin)</p>
+<p>2) Install with Homebrew</p>
+
+<pre style="background:#2f3337; color:#e6edf3; padding:16px; border-radius:6px; overflow:auto; border:1px solid rgba(255,255,255,.12); margin:16px 0;">
+brew update
+brew tap EasyG0ing1/tools
+brew install snapzap
+  </pre>
+
 
 <h2 id="toc_2" style="border-bottom:1px solid rgba(255,255,255,.2); padding-bottom:.3em;">Usage</h2>
   <p>Invoke the command with the path to the volume you want to manage. Then chose a menu option.</p>
