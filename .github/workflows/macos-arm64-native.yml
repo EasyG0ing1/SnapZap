@@ -30,23 +30,40 @@ jobs:
         id: pkg
         shell: bash
         run: |
+          set -euo pipefail
+          
           VER=$(mvn -q -Dexpression=project.version help:evaluate -DforceStdout)
           echo "ver=$VER" >> $GITHUB_OUTPUT
-        
-          cd native-image
-          [ -f SnapZap ] && mv SnapZap snapzap
-        
+          
+          # Try common output paths from GraalVM Native Build Tools / Quarkus / Micronaut / plain native-image
+          BIN_PATH=$(
+            find target -type f -perm -111 \( -name 'snapzap' -o -name 'SnapZap' -o -name '*-runner' -o -name '*native*' \) \
+              2>/dev/null | head -n1
+          )
+          
+          if [[ -z "${BIN_PATH:-}" ]]; then
+            echo "❌ Could not locate native binary under target/. Contents:"
+            ls -R target || true
+            exit 1
+          fi
+          
+          echo "Found native binary at: $BIN_PATH"
+          mkdir -p dist
+          cp "$BIN_PATH" dist/snapzap   # normalize name for Homebrew
+          
+          cd dist
           TARBALL="snapzap-${VER}-macos-arm64.tar.gz"
           ZIPBALL="snapzap-${VER}-macos-arm64.zip"
-        
+          
           # tar.gz (for Homebrew)
           tar -czf "$TARBALL" snapzap
           shasum -a 256 "$TARBALL" | tee "../${TARBALL}.sha256"
-        
+          
           # zip (for manual installs; preserves macOS attrs)
           ditto -c -k --sequesterRsrc --keepParent snapzap "$ZIPBALL"
           shasum -a 256 "$ZIPBALL" | tee "../${ZIPBALL}.sha256"
-
+      
+      
       - name: Upload CI artifacts
         uses: actions/upload-artifact@v4
         with:
