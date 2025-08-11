@@ -172,7 +172,7 @@
                                 <arg>-H:+UnlockExperimentalVMOptions</arg>
                                 <arg>-H:+ReportExceptionStackTraces</arg>
                                 <arg>-O3</arg>
-                                <arg>-o ${basedir}/native-image/${project.name}</arg>
+                                <arg>-o ${basedir}/target/${project.name}</arg>
                             </buildArgs>
                         </configuration>
                     </plugin>

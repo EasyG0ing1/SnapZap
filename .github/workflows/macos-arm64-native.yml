@@ -24,7 +24,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native image (Maven profile 'native')
-        run: mvn -Pnative -B -ntp -DskipTests package
+        run: mvn -Pnative -B -ntp -DskipTests native:compile
 
       - name: Package artifacts and checksums
         id: pkg
