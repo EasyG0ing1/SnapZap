@@ -2,7 +2,7 @@ name: macOS ARM64 native image
 
 on:
   push:
-    tags: ['v*']   # build & publish when you push a tag like v1.0.1
+    tags: [ 'v*' ]   # build & publish when you push a tag like v1.0.1
   workflow_dispatch: # allow manual runs from the Actions tab
 
 jobs:
@@ -26,20 +26,26 @@ jobs:
       - name: Build native image (Maven profile 'native')
         run: mvn -Pnative -B -ntp -DskipTests package
 
-      - name: Package artifact and checksum
+      - name: Package artifacts and checksums
         id: pkg
         shell: bash
         run: |
           VER=$(mvn -q -Dexpression=project.version help:evaluate -DforceStdout)
           echo "ver=$VER" >> $GITHUB_OUTPUT
-
-          # Your pom outputs to native-image/SnapZap; Homebrew expects 'snapzap'
+        
           cd native-image
           [ -f SnapZap ] && mv SnapZap snapzap
-
+        
           TARBALL="snapzap-${VER}-macos-arm64.tar.gz"
+          ZIPBALL="snapzap-${VER}-macos-arm64.zip"
+        
+          # tar.gz (for Homebrew)
           tar -czf "$TARBALL" snapzap
           shasum -a 256 "$TARBALL" | tee "../${TARBALL}.sha256"
+        
+          # zip (for manual installs; preserves macOS attrs)
+          ditto -c -k --sequesterRsrc --keepParent snapzap "$ZIPBALL"
+          shasum -a 256 "$ZIPBALL" | tee "../${ZIPBALL}.sha256"
 
       - name: Upload CI artifacts
         uses: actions/upload-artifact@v4
@@ -47,13 +53,19 @@ jobs:
           name: snapzap-macos-arm64
           path: |
             native-image/snapzap-*-macos-arm64.tar.gz
-            snapzap-*-macos-arm64.sha256
-
+            native-image/snapzap-*-macos-arm64.zip
+            snapzap-*-macos-arm64.tar.gz.sha256
+            snapzap-*-macos-arm64.zip.sha256
+        
+        
       - name: Attach to GitHub Release (on tag or manual)
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           files: |
             native-image/snapzap-*-macos-arm64.tar.gz
-            snapzap-*-macos-arm64.sha256
+            native-image/snapzap-*-macos-arm64.zip
+            snapzap-*-macos-arm64.tar.gz.sha256
+            snapzap-*-macos-arm64.zip.sha256
           prerelease: false
+  
