@@ -120,4 +120,4 @@ jobs:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           ref: master
           inputs: |
-            version=${{ env.version }}
+            inputs: '{"version": "${{ env.version }}"}'
