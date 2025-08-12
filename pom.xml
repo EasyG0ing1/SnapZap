@@ -164,10 +164,10 @@
                                 <arg>-Djava.awt.headless=true</arg>
                                 <arg>--no-fallback</arg>
                                 <arg>--enable-preview</arg>
-                                <arg>--enable-http</arg>
-                                <arg>--enable-https</arg>
+                                <arg>--enable-url-protocols=http,https</arg>
                                 <arg>--initialize-at-build-time=org.sqlite.util.ProcessRunner</arg>
                                 <arg>--enable-native-access=ALL-UNNAMED</arg>
+                                <arg>-H:-ReduceImplicitExceptionStackTraceInformation</arg>
                                 <arg>-march=x86-64</arg>
                                 <arg>-H:+UnlockExperimentalVMOptions</arg>
                                 <arg>-H:+ReportExceptionStackTraces</arg>
@@ -204,12 +204,11 @@
                             <buildArgs>
                                 <arg>-Djava.awt.headless=true</arg>
                                 <arg>--no-fallback</arg>
-                                <arg>--enable-preview</arg>
-                                <arg>--enable-http</arg>
-                                <arg>--enable-https</arg>
+                                <arg>--enable-url-protocols=http,https</arg>
                                 <arg>--initialize-at-build-time=org.sqlite.util.ProcessRunner</arg>
                                 <arg>--enable-native-access=ALL-UNNAMED</arg>
                                 <arg>-march=armv8-a</arg>
+                                <arg>-H:-ReduceImplicitExceptionStackTraceInformation</arg>
                                 <arg>-H:+UnlockExperimentalVMOptions</arg>
                                 <arg>-H:+ReportExceptionStackTraces</arg>
                                 <arg>-O3</arg>
