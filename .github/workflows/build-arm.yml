@@ -19,6 +19,7 @@ jobs:
 
       - name: Check if version changed
         id: version_check
+        continue-on-error: true
         run: |
           CURRENT_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
           git fetch origin master --depth=2
