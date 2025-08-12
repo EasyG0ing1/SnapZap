@@ -40,14 +40,6 @@ jobs:
             echo "changed=true" >> $GITHUB_ENV
           fi
           
-      - name: Create Git tag for version
-        if: env.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f v${version}
-          git push origin v${version} --force
-
       - name: Install SDKMAN and GraalVM
         if: env.changed == 'true'
         run: |
