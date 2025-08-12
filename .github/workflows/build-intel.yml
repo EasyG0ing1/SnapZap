@@ -113,5 +113,4 @@ jobs:
           repo: EasyG0ing1/SnapZap
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           ref: master
-          inputs: |
-            version: ${{ env.version }}
+          inputs: '{"version": "${{ env.version }}"}'
