@@ -21,7 +21,7 @@ jobs:
         id: version_check
         run: |
           CURRENT_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
-          git fetch origin main --depth=2
+          git fetch origin master --depth=2
           git show HEAD^:pom.xml > pom_old.xml || true
           PREVIOUS_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom_old.xml || echo "")
           echo "Current version: $CURRENT_VERSION"
