@@ -81,7 +81,7 @@ jobs:
           source "$HOME/.sdkman/bin/sdkman-init.sh"
           mvn -PnativeARM -DskipTests native:compile
           mv target/ARM/SnapZap target/ARM/snapzap
-          tar -czvf snapzap-${{ env.version }}-macos-arm64.tar.gz -C target/ARM/snapzap
+          tar -czvf snapzap-${{ env.version }}-macos-arm64.tar.gz -C target/ARM snapzap
           zip -j snapzap-${{ env.version }}-macos-arm64.zip target/ARM/snapzap
 
       - name: Upload to GitHub Release
