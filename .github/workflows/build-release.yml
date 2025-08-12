@@ -31,14 +31,23 @@ jobs:
         uses: s4u/setup-maven-action@v1.14.0
         with:
           maven-version: 4.0.0-rc-2
-
-      - name: Set up GraalVM + native-image
+  
+        # Cache Maven repo with the supported cache action
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-${{ matrix.arch }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-m2-
+  
+      # Set up GraalVM (no internal cache)
+      - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: graalvm
           java-version: '25-ea'
           components: 'native-image'
-          cache: 'maven'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve project version
