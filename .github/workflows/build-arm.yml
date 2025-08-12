@@ -10,6 +10,8 @@ on:
 jobs:
   build-arm:
     runs-on: macos-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -38,13 +40,18 @@ jobs:
             echo "changed=true" >> $GITHUB_ENV
           fi
 
-      - name: Create GitHub release (draft if not exists)
+      - name: Configure Git user
         if: env.changed == 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ env.version }}
-          name: SnapZap ${{ env.version }}
-          draft: true
+        run: |
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push new tag
+        if: env.changed == 'true'
+        run: |
+          NEW_TAG="v${{ env.version }}"
+          git tag -a "$NEW_TAG" -m "New release: $NEW_TAG"
+          git push origin "$NEW_TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -78,11 +85,29 @@ jobs:
           tar -czvf snapzap-${{ env.version }}-macos-arm64.tar.gz snapzap
           zip -j snapzap-${{ env.version }}-macos-arm64.zip snapzap
 
-      - name: Upload ARM artifacts to release
+      - name: Upload to GitHub Release
         if: env.changed == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.version }}
+          name: Version ${{ env.version }}
+          body: |
+            These native binaries were compiled with Github Actions, not my personal computer.
+
+            #Installation Instructions
+
+            ###Option 1 - Manual
+            Download the zip file below for your architecture, then unzip the file into a folder that is in your PATH, such as `~/.local/bin`
+
+            ###Option 2 - Homebrew
+
+            ```BASH
+            brew update
+            brew tap EasyG0ing1/tools
+            brew install snapzap
+            ```
+
+            The Homebrew option automatically determines which architecture you're running on and installs the correct native binary.
           files: |
             snapzap-${{ env.version }}-macos-arm64.tar.gz
             snapzap-${{ env.version }}-macos-arm64.zip
