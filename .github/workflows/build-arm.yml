@@ -75,6 +75,7 @@ jobs:
           tag_name: v${{ env.version }}
           name: SnapZap ${{ env.version }}
           draft: true
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
