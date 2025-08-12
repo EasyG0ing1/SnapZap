@@ -168,7 +168,7 @@
                                 <arg>--enable-https</arg>
                                 <arg>--initialize-at-build-time=org.sqlite.util.ProcessRunner</arg>
                                 <arg>--enable-native-access=ALL-UNNAMED</arg>
-                                <arg>-march=native</arg>
+                                <arg>-march=x86-64</arg>
                                 <arg>-H:+UnlockExperimentalVMOptions</arg>
                                 <arg>-H:+ReportExceptionStackTraces</arg>
                                 <arg>-O3</arg>
@@ -209,7 +209,7 @@
                                 <arg>--enable-https</arg>
                                 <arg>--initialize-at-build-time=org.sqlite.util.ProcessRunner</arg>
                                 <arg>--enable-native-access=ALL-UNNAMED</arg>
-                                <arg>-march=native</arg>
+                                <arg>-march=armv8-a</arg>
                                 <arg>-H:+UnlockExperimentalVMOptions</arg>
                                 <arg>-H:+ReportExceptionStackTraces</arg>
                                 <arg>-O3</arg>
