@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.simtechdata</groupId>
     <artifactId>SnapZap</artifactId>
-    <version>1.0.10</version>
+    <version>1.0.11</version>
     <packaging>jar</packaging>
     <name>SnapZap</name>
     <description>SnapZap helps you clean up snapshots on APFS volumes in MacOS.</description>
@@ -16,8 +16,10 @@
         <system-native-image-arg/>
         <mainClass>${groupId}.App</mainClass>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+<!--
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
+-->
         <!-- Dependencies -->
         <version-picocli>4.7.7</version-picocli>
         <version-JavaProc>1.0.0</version-JavaProc>
