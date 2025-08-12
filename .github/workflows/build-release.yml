@@ -28,7 +28,7 @@ jobs:
 
       # Optional: ensure Maven 4.0.0-rc-2 if your enforcer requires it
       - name: Set up Maven 4.0.0-rc-2
-        uses: s4u/setup-maven-action@v1
+        uses: s4u/setup-maven-action@v1.14.0
         with:
           maven-version: 4.0.0-rc-2
 
