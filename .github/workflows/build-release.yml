@@ -1,0 +1,131 @@
+name: Build & Release SnapZap (ARM64 + x64)
+
+on:
+  push:
+    tags: ['v*']         # still supports tag-triggered runs
+  workflow_dispatch: {}  # allow manual runs
+
+permissions:
+  contents: write        # needed for creating release/tags & uploading assets
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runs-on: macos-14
+            suffix: macos-arm64
+          - arch: x64
+            runs-on: macos-13
+            suffix: macos-x86_64
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Optional: ensure Maven 4.0.0-rc-2 if your enforcer requires it
+      - name: Set up Maven 4.0.0-rc-2
+        uses: s4u/setup-maven-action@v1
+        with:
+          maven-version: 4.0.0-rc-2
+
+      - name: Set up GraalVM + native-image
+        uses: graalvm/setup-graalvm@v1
+        with:
+          distribution: graalvm
+          java-version: '25-ea'
+          components: 'native-image'
+          cache: 'maven'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve project version
+        id: ver
+        run: echo "value=$(mvn -q -Dexpression=project.version help:evaluate -DforceStdout)" >> "$GITHUB_OUTPUT"
+
+      - name: Build native image (matches your local command)
+        run: mvn clean -Pnative -B -ntp -DskipTests native:compile
+
+      - name: Locate native binary
+        id: locate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Try your known outputs first, then common defaults
+          CANDIDATES=(
+            "native-image/SnapZap" "native-image/snapzap"
+            "target/native/SnapZap" "target/native/snapzap"
+            "target/native-image/SnapZap" "target/native-image/snapzap"
+            "target/SnapZap" "target/snapzap"
+          )
+          BIN=""
+          for p in "${CANDIDATES[@]}"; do
+            if [[ -f "$p" ]]; then BIN="$p"; break; fi
+          done
+          if [[ -z "$BIN" ]]; then
+            echo "❌ Native binary not found. Listing target/ and native-image/:"
+            (ls -lR target || true) && (ls -lR native-image || true)
+            exit 1
+          fi
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+
+      - name: Package (.tar.gz and .zip) + checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          VER='${{ steps.ver.outputs.value }}'
+          SUF='${{ matrix.suffix }}'
+          mkdir -p dist
+          cp '${{ steps.locate.outputs.path }}' dist/snapzap   # normalize name
+
+          pushd dist >/dev/null
+          TARBALL="snapzap-${VER}-${SUF}.tar.gz"
+          ZIPBALL="snapzap-${VER}-${SUF}.zip"
+
+          # Homebrew-friendly tarball
+          tar -czf "$TARBALL" snapzap
+          shasum -a 256 "$TARBALL" | tee "../${TARBALL}.sha256"
+
+          # Zip for manual installs (preserve macOS attrs)
+          ditto -c -k --sequesterRsrc --keepParent snapzap "$ZIPBALL"
+          shasum -a 256 "$ZIPBALL" | tee "../${ZIPBALL}.sha256"
+          popd >/dev/null
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapzap-${{ steps.ver.outputs.value }}-${{ matrix.suffix }}
+          path: |
+            dist/snapzap-*-*.tar.gz
+            dist/snapzap-*-*.zip
+            *.sha256
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve project version
+        id: ver
+        run: echo "value=$(mvn -q -Dexpression=project.version help:evaluate -DforceStdout)" >> "$GITHUB_OUTPUT"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./all-artifacts
+
+      # This creates a release and (if necessary) a tag v<version> pointing at the current commit
+      - name: Publish GitHub Release with assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.value }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            all-artifacts/**/snapzap-*.tar.gz
+            all-artifacts/**/snapzap-*.zip
+            all-artifacts/**/snapzap-*.sha256
+          prerelease: false

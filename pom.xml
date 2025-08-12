@@ -138,9 +138,9 @@
     </repositories>
 
     <profiles>
-        <!--native profile-->
+        <!--native Intel profile-->
         <profile>
-            <id>native</id>
+            <id>nativeIntel</id>
             <build>
                 <plugins>
                     <!-- GraalVM Native Maven Plugin -->
@@ -172,7 +172,48 @@
                                 <arg>-H:+UnlockExperimentalVMOptions</arg>
                                 <arg>-H:+ReportExceptionStackTraces</arg>
                                 <arg>-O3</arg>
-                                <arg>-o ${basedir}/target/${project.name}</arg>
+                                <arg>-o ${build.directory}/Intel/${project.name}</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!--native ARM profile-->
+        <profile>
+            <id>nativeARM</id>
+            <build>
+                <plugins>
+                    <!-- GraalVM Native Maven Plugin -->
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${version-native-maven-plugin}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <target>${java.version}</target>
+                            <imageName>${project.name}</imageName>
+                            <mainClass>${mainClass}</mainClass>
+                            <verbose>true</verbose>
+                            <fallback>false</fallback>
+                            <buildArgs>
+                                <arg>-Djava.awt.headless=true</arg>
+                                <arg>--no-fallback</arg>
+                                <arg>--enable-preview</arg>
+                                <arg>--enable-http</arg>
+                                <arg>--enable-https</arg>
+                                <arg>--initialize-at-build-time=org.sqlite.util.ProcessRunner</arg>
+                                <arg>--enable-native-access=ALL-UNNAMED</arg>
+                                <arg>-march=native</arg>
+                                <arg>-H:+UnlockExperimentalVMOptions</arg>
+                                <arg>-H:+ReportExceptionStackTraces</arg>
+                                <arg>-O3</arg>
+                                <arg>-o ${build.directory}/ARM/${project.name}</arg>
                             </buildArgs>
                         </configuration>
                     </plugin>
