@@ -136,15 +136,6 @@ jobs:
             ```
 
             The Homebrew option automatically determines which architecture you're running on and installs the correct native binary.
-
-            SHA-256 for each file:
-
-            ```BASH
-            snapzap-${{ needs.build-intel.outputs.version }}-macos-arm64.tar.gz : ${{ steps.arm_hashes.outputs.TAR }}
-            snapzap-${{ needs.build-intel.outputs.version }}-macos-x64.tar.gz  : ${{ needs.build-intel.outputs.TAR }}
-            snapzap-${{ needs.build-intel.outputs.version }}-macos-arm64.zip   : ${{ steps.arm_hashes.outputs.ZIP }}
-            snapzap-${{ needs.build-intel.outputs.version }}-macos-x64.zip     : ${{ needs.build-intel.outputs.ZIP }}
-            ```
           files: |
                       snapzap-${{ needs.build-intel.outputs.version }}-macos-x64.tar.gz
                       snapzap-${{ needs.build-intel.outputs.version }}-macos-x64.zip
