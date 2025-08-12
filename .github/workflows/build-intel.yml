@@ -54,7 +54,9 @@ jobs:
           curl -s "https://get.sdkman.io" | bash
           source "$HOME/.sdkman/bin/sdkman-init.sh"
           sdk install java 25.ea.28-graal
+          sdk use java 25.ea.28-graal
           sdk install maven 4.0.0-rc-4
+          sdk use maven 4.0.0-rc-4
           java -version
           mvn -version
 
