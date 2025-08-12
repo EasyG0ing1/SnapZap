@@ -18,10 +18,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
-        <!--Dependency Versions-->
+        <!-- Dependencies -->
         <version-picocli>4.7.7</version-picocli>
         <version-JavaProc>1.0.0</version-JavaProc>
-        <!--Plugins Versions-->
+        <!-- Plugins -->
         <version-exec-maven-plugin>3.5.1</version-exec-maven-plugin>
         <versions-maven-plugin>2.18.0</versions-maven-plugin>
         <version-maven-enforcer-plugin>3.6.1</version-maven-enforcer-plugin>
