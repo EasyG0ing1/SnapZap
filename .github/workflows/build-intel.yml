@@ -19,21 +19,29 @@ jobs:
 
       - name: Check if version changed
         id: version_check
-        continue-on-error: true
         run: |
           CURRENT_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+
+          # Fetch minimal history to get previous pom.xml
           git fetch origin master --depth=2
           git show HEAD^:pom.xml > pom_old.xml || true
           PREVIOUS_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom_old.xml || echo "")
+
           echo "Current version: $CURRENT_VERSION"
           echo "Previous version: $PREVIOUS_VERSION"
-          if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
-            echo "No version change detected — skipping build."
-            exit 78
-          fi
+
+          # Always set version
           echo "version=$CURRENT_VERSION" >> $GITHUB_ENV
 
+          if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+            echo "changed=false" >> $GITHUB_ENV
+            echo "No version change detected — skipping build."
+          else
+            echo "changed=true" >> $GITHUB_ENV
+          fi
+          
       - name: Create Git tag for version
+        if: env.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -41,6 +49,7 @@ jobs:
           git push origin v${version} --force
 
       - name: Install SDKMAN and GraalVM
+        if: env.changed == 'true'
         run: |
           curl -s "https://get.sdkman.io" | bash
           source "$HOME/.sdkman/bin/sdkman-init.sh"
@@ -50,12 +59,15 @@ jobs:
           mvn -version
 
       - name: Clean Maven
+        if: env.changed == 'true'
         run: mvn clean
 
       - name: Prepare Intel Build Directory
+        if: env.changed == 'true'
         run: mkdir -p target/Intel
 
       - name: Build Intel native image
+        if: env.changed == 'true'
         run: |
           source "$HOME/.sdkman/bin/sdkman-init.sh"
           mvn -PnativeIntel native:compile
@@ -63,11 +75,13 @@ jobs:
           chmod +x snapzap
 
       - name: Package Intel archives
+        if: env.changed == 'true'
         run: |
           tar -czf snapzap-${version}-macos-x64.tar.gz snapzap
           zip -j snapzap-${version}-macos-x64.zip snapzap
 
       - name: Upload to GitHub Release
+        if: env.changed == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.version }}
@@ -79,6 +93,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Release
+        if: env.changed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -97,6 +112,7 @@ jobs:
             });
 
       - name: Trigger Homebrew Update
+        if: env.changed == 'true'
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: update-homebrew.yml
