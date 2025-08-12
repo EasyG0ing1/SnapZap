@@ -50,15 +50,18 @@ jobs:
           java -version
           mvn -version
 
-      - name: Set up Maven
+      - name: Clean Maven
         if: env.changed == 'true'
-        run: |
-          brew install maven
-          mvn -version
+        run: mvn clean
+
+      - name: Prepare Intel Build Directory
+        if: env.changed == 'true'
+        run: mkdir -p target/ARM
 
       - name: Build ARM native image
         if: env.changed == 'true'
         run: |
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
           mvn -PnativeARM -DskipTests native:compile
           tar -czvf snapzap-${{ env.version }}-macos-arm64.tar.gz -C target native-snapzap
           zip -j snapzap-${{ env.version }}-macos-arm64.zip target/native-snapzap
