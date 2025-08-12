@@ -23,6 +23,9 @@ jobs:
           sdk install maven 4.0.0-rc-4
           java -version
           mvn -version
+          
+      - name: Prepare Intel Build Directory
+        run: mkdir -p target/Intel
 
       - name: Build Intel native image
         run: |
@@ -76,6 +79,9 @@ jobs:
           sdk install maven 4.0.0-rc-4
           java -version
           mvn -version
+
+      - name: Prepare ARM Build Directory
+        run: mkdir -p target/ARM
 
       - name: Build ARM native image
         run: |
