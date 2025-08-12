@@ -2,11 +2,15 @@ name: Build & Release SnapZap (ARM64 + x64)
 
 on:
   push:
-    tags: ['v*']          # still supports tag-triggered runs
-  workflow_dispatch: {}   # manual runs
+    tags: [ 'v*' ]          # still supports tag-triggered runs
+  workflow_dispatch: { }   # manual runs
 
 permissions:
-  contents: write
+  contents: write         # create tags/releases and upload assets
+
+env:
+  MAVEN_VERSION: 4.0.0-rc-2
+  GRAAL_JDK_TAG: jdk-25+33.1   # GraalVM CE build tag to download
 
 jobs:
   build:
@@ -19,43 +23,45 @@ jobs:
             runs-on: macos-14
             maven-profile: nativeARM
             suffix: macos-arm64
-            bin-path: target/ARM/SnapZap
+            bin_path: target/ARM/SnapZap
+            graal_url: https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25+33.1/graalvm-community-jdk-25_macos-aarch64_bin.tar.gz
           - arch: x64
             runs-on: macos-13
             maven-profile: nativeIntel
             suffix: macos-x64
-            bin-path: target/Intel/SnapZap
+            bin_path: target/Intel/SnapZap
+            graal_url: https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25+33.1/graalvm-community-jdk-25_macos-x64_bin.tar.gz
     runs-on: ${{ matrix.runs-on }}
 
     steps:
       - uses: actions/checkout@v4
 
-      # ---- Install Maven 4.0.0-rc-2 (no setup-maven action, no cache action) ----
-      - name: Install Maven 4.0.0-rc-2
+      # ---- Install Maven (no setup-maven action; no deprecated cache) ----
+      - name: Install Maven ${{ env.MAVEN_VERSION }}
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL https://archive.apache.org/dist/maven/maven-4/4.0.0-rc-2/binaries/apache-maven-4.0.0-rc-2-bin.tar.gz -o maven.tgz
+          curl -fsSL "https://archive.apache.org/dist/maven/maven-4/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" -o maven.tgz
           mkdir -p "$HOME/.local"
           tar -xzf maven.tgz -C "$HOME/.local"
-          MVN_HOME="$HOME/.local/apache-maven-4.0.0-rc-2"
-          echo "MAVEN_HOME=$MVN_HOME" >> $GITHUB_ENV
-          echo "$MVN_HOME/bin" >> $GITHUB_PATH
+          echo "MAVEN_HOME=$HOME/.local/apache-maven-${MAVEN_VERSION}" >> $GITHUB_ENV
+          echo "$HOME/.local/apache-maven-${MAVEN_VERSION}/bin" >> $GITHUB_PATH
           mvn -v
 
-      # ---- Install GraalVM JDK 25 + native-image (no setup-graalvm action) ----
-      - name: Install GraalVM JDK 25 + native-image
+      # ---- Install GraalVM CE JDK 25 + native-image (download directly) ----
+      - name: Install GraalVM CE 25 + native-image
         shell: bash
         run: |
           set -euo pipefail
-          brew update
-          brew install --cask graalvm-jdk
-          export GRAALVM_HOME="$("/usr/libexec/java_home" -v 25)"
-          echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
-          echo "JAVA_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
-          echo "$GRAALVM_HOME/bin" >> $GITHUB_PATH
-          "$GRAALVM_HOME/bin/java" -version
-          "$GRAALVM_HOME/bin/gu" install native-image
+          curl -fsSL "${{ matrix.graal_url }}" -o graalvm.tar.gz
+          mkdir -p "$HOME/.graalvm"
+          # unpack to $HOME/.graalvm (strip top folder)
+          tar -xzf graalvm.tar.gz -C "$HOME/.graalvm" --strip-components=1
+          echo "GRAALVM_HOME=$HOME/.graalvm" >> $GITHUB_ENV
+          echo "JAVA_HOME=$HOME/.graalvm" >> $GITHUB_ENV
+          echo "$HOME/.graalvm/bin" >> $GITHUB_PATH
+          java -version
+          gu install native-image
 
       - name: Resolve project version
         id: ver
@@ -65,16 +71,17 @@ jobs:
         run: mvn clean -P${{ matrix.maven-profile }} -B -ntp -DskipTests native:compile
 
       - name: Package ${{ matrix.arch }} artifacts
+        id: pkg
         shell: bash
         run: |
           set -euo pipefail
           VER='${{ steps.ver.outputs.value }}'
           SUF='${{ matrix.suffix }}'
-          BIN='${{ matrix.bin-path }}'
+          BIN='${{ matrix.bin_path }}'
           test -f "$BIN" || { echo "❌ Missing binary at $BIN"; ls -lR target || true; exit 1; }
 
           mkdir -p dist
-          cp "$BIN" dist/snapzap   # normalize name for Homebrew
+          cp "$BIN" dist/snapzap   # normalize to lower-case name
 
           pushd dist >/dev/null
           TARBALL="snapzap-${VER}-${SUF}.tar.gz"
@@ -100,6 +107,7 @@ jobs:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -112,37 +120,30 @@ jobs:
         with:
           path: ./all-artifacts
 
-      - name: Publish GitHub Release with assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.ver.outputs.value }}
-          target_commitish: ${{ github.sha }}
-          files: |
-            all-artifacts/**/snapzap-*.tar.gz
-            all-artifacts/**/snapzap-*.zip
-            all-artifacts/**/snapzap-*.sha256
-          body: |
-            These native binaries were compiled with GitHub Actions, not my personal computer.
+      - name: Build release body with real SHA256s
+        id: body
+        shell: bash
+        run: |
+          set -euo pipefail
+          VER='${{ steps.ver.outputs.value }}'
 
-            #Installation Instructions
+          ARM_TGZ_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-arm64.tar.gz.sha256)
+          X64_TGZ_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-x64.tar.gz.sha256)
+          ARM_ZIP_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-arm64.zip.sha256)
+          X64_ZIP_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-x64.zip.sha256)
 
-            ###Option 1 - Manual
-            Download the zip file below for your architecture, then unzip the file into a folder that is in your PATH, such as `~/.local/bin`
-
-            ###Option 2 - Homebrew
-
-            ```BASH
-            brew update
-            brew tap EasyG0ing1/tools
-            brew install snapzap
-            ```
-
-            The Homebrew option automatically determines which architecture you're running on and installs the correct native binary.
-
-            SHA-256 for each file:
-
-                snapzap-${{ steps.ver.outputs.value }}-macos-arm64.tar.gz : <HASH>
-                snapzap-${{ steps.ver.outputs.value }}-macos-x64.tar.gz   : <HASH>
-                snapzap-${{ steps.ver.outputs.value }}-macos-arm64.zip    : <HASH>
-                snapzap-${{ steps.ver.outputs.value }}-macos-x64.zip      : <HASH>
-          prerelease: false
+          cat > body.md <<'EOF'
+  These native binaries were compiled with Github Actions, not my personal computer.
+  
+  #Installation Instructions
+  
+  ###Option 1 - Manual
+  Download the zip file below for your architecture, then unzip the file into a folder that is in your PATH, such as `~/.local/bin`
+  
+  ###Option 2 - Homebrew
+  
+  ```BASH
+  brew update
+  brew tap EasyG0ing1/tools
+  brew install snapzap
+  ```
