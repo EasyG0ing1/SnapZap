@@ -24,13 +24,16 @@ jobs:
           java -version
           mvn -version
           
+      - name: Clean Maven
+        run: mvn clean
+
       - name: Prepare Intel Build Directory
         run: mkdir -p target/Intel
 
       - name: Build Intel native image
         run: |
           source "$HOME/.sdkman/bin/sdkman-init.sh"
-          mvn clean -PnativeIntel native:compile
+          mvn -PnativeIntel native:compile
           mv target/Intel/* snapzap
           chmod +x snapzap
 
@@ -80,13 +83,16 @@ jobs:
           java -version
           mvn -version
 
+      - name: Clean Maven
+        run: mvn clean
+
       - name: Prepare ARM Build Directory
         run: mkdir -p target/ARM
 
       - name: Build ARM native image
         run: |
           source "$HOME/.sdkman/bin/sdkman-init.sh"
-          mvn clean -PnativeARM native:compile
+          mvn -PnativeARM native:compile
           mv target/ARM/* snapzap
           chmod +x snapzap
 
