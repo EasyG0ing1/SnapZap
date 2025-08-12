@@ -18,8 +18,8 @@ jobs:
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: graalvm
-          java-version: '25-ea'     # matches your pom (Java 25); use '24' if you prefer stable
-          components: 'native-image' # installs the native-image tool
+          java-version: '25-ea' 
+          components: 'native-image'
           cache: 'maven'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
