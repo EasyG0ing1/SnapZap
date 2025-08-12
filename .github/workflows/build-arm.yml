@@ -1,0 +1,88 @@
+name: Build ARM Native Image for macOS
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pom.xml'
+
+jobs:
+  build-arm:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if version changed
+        id: version_check
+        run: |
+          CURRENT_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+          git fetch origin main --depth=2
+          git show HEAD^:pom.xml > pom_old.xml || true
+          PREVIOUS_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom_old.xml || echo "")
+          echo "Current version: $CURRENT_VERSION"
+          echo "Previous version: $PREVIOUS_VERSION"
+          if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+            echo "No version change detected — skipping build."
+            exit 78
+          fi
+          echo "version=$CURRENT_VERSION" >> $GITHUB_ENV
+
+      - name: Install SDKMAN and GraalVM
+        run: |
+          curl -s "https://get.sdkman.io" | bash
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk install java 25.ea.28-graal
+          sdk install maven 4.0.0-rc-4
+          java -version
+          mvn -version
+
+      - name: Clean Maven
+        run: mvn clean
+
+      - name: Prepare ARM Build Directory
+        run: mkdir -p target/ARM
+
+      - name: Build ARM native image
+        run: |
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          mvn -PnativeARM native:compile
+          mv target/ARM/* snapzap
+          chmod +x snapzap
+
+      - name: Package ARM archives
+        run: |
+          tar -czf snapzap-${version}-macos-arm64.tar.gz snapzap
+          zip -j snapzap-${version}-macos-arm64.zip snapzap
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.version }}
+          name: Version ${{ env.version }}
+          body: |
+            These native binaries were compiled with Github Actions, not my personal computer.
+
+            #Installation Instructions
+
+            ###Option 1 - Manual
+            Download the zip file below for your architecture, then unzip the file into a folder that is in your PATH, such as `~/.local/bin`
+
+            ###Option 2 - Homebrew
+
+            ```BASH
+            brew update
+            brew tap EasyG0ing1/tools
+            brew install snapzap
+            ```
+
+            The Homebrew option automatically determines which architecture you're running on and installs the correct native binary.
+          files: |
+            snapzap-${{ env.version }}-macos-arm64.tar.gz
+            snapzap-${{ env.version }}-macos-arm64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

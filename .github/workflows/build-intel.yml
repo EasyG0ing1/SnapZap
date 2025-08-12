@@ -1,0 +1,71 @@
+name: Build Intel Native Image for macOS
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pom.xml'
+
+jobs:
+  build-intel:
+    runs-on: macos-13
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if version changed
+        id: version_check
+        run: |
+          CURRENT_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+          git fetch origin main --depth=2
+          git show HEAD^:pom.xml > pom_old.xml || true
+          PREVIOUS_VERSION=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom_old.xml || echo "")
+          echo "Current version: $CURRENT_VERSION"
+          echo "Previous version: $PREVIOUS_VERSION"
+          if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+            echo "No version change detected — skipping build."
+            exit 78
+          fi
+          echo "version=$CURRENT_VERSION" >> $GITHUB_ENV
+
+      - name: Install SDKMAN and GraalVM
+        run: |
+          curl -s "https://get.sdkman.io" | bash
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk install java 25.ea.28-graal
+          sdk install maven 4.0.0-rc-4
+          java -version
+          mvn -version
+
+      - name: Clean Maven
+        run: mvn clean
+
+      - name: Prepare Intel Build Directory
+        run: mkdir -p target/Intel
+
+      - name: Build Intel native image
+        run: |
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          mvn -PnativeIntel native:compile
+          mv target/Intel/* snapzap
+          chmod +x snapzap
+
+      - name: Package Intel archives
+        run: |
+          tar -czf snapzap-${version}-macos-x64.tar.gz snapzap
+          zip -j snapzap-${version}-macos-x64.zip snapzap
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.version }}
+          name: Version ${{ env.version }}
+          files: |
+            snapzap-${{ env.version }}-macos-x64.tar.gz
+            snapzap-${{ env.version }}-macos-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
