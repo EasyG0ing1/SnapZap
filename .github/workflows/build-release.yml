@@ -2,15 +2,16 @@ name: Build & Release SnapZap (ARM64 + x64)
 
 on:
   push:
-    tags: [ 'v*' ]          # still supports tag-triggered runs
-  workflow_dispatch: { }   # manual runs
+    tags: ['v*']
+  workflow_dispatch: {}
 
 permissions:
-  contents: write         # create tags/releases and upload assets
+  contents: write
 
 env:
   MAVEN_VERSION: 4.0.0-rc-2
-  GRAAL_JDK_TAG: jdk-25+33.1   # GraalVM CE build tag to download
+  GRAAL_VERSION: 25.0.1
+  GRAAL_BUILD: 25.0.1+1
 
 jobs:
   build:
@@ -24,21 +25,19 @@ jobs:
             maven-profile: nativeARM
             suffix: macos-arm64
             bin_path: target/ARM/SnapZap
-            graal_url: https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25+33.1/graalvm-community-jdk-25_macos-aarch64_bin.tar.gz
+            graal_url: https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-${{ env.GRAAL_BUILD }}/graalvm-community-jdk-${{ env.GRAAL_VERSION }}_macos-aarch64_bin.tar.gz
           - arch: x64
             runs-on: macos-13
             maven-profile: nativeIntel
             suffix: macos-x64
             bin_path: target/Intel/SnapZap
-            graal_url: https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25+33.1/graalvm-community-jdk-25_macos-x64_bin.tar.gz
+            graal_url: https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-${{ env.GRAAL_BUILD }}/graalvm-community-jdk-${{ env.GRAAL_VERSION }}_macos-x64_bin.tar.gz
     runs-on: ${{ matrix.runs-on }}
 
     steps:
       - uses: actions/checkout@v4
 
-      # ---- Install Maven (no setup-maven action; no deprecated cache) ----
-      - name: Install Maven ${{ env.MAVEN_VERSION }}
-        shell: bash
+      - name: Install Maven
         run: |
           set -euo pipefail
           curl -fsSL "https://archive.apache.org/dist/maven/maven-4/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" -o maven.tgz
@@ -48,14 +47,11 @@ jobs:
           echo "$HOME/.local/apache-maven-${MAVEN_VERSION}/bin" >> $GITHUB_PATH
           mvn -v
 
-      # ---- Install GraalVM CE JDK 25 + native-image (download directly) ----
-      - name: Install GraalVM CE 25 + native-image
-        shell: bash
+      - name: Install GraalVM CE + native-image
         run: |
           set -euo pipefail
           curl -fsSL "${{ matrix.graal_url }}" -o graalvm.tar.gz
           mkdir -p "$HOME/.graalvm"
-          # unpack to $HOME/.graalvm (strip top folder)
           tar -xzf graalvm.tar.gz -C "$HOME/.graalvm" --strip-components=1
           echo "GRAALVM_HOME=$HOME/.graalvm" >> $GITHUB_ENV
           echo "JAVA_HOME=$HOME/.graalvm" >> $GITHUB_ENV
@@ -67,12 +63,10 @@ jobs:
         id: ver
         run: echo "value=$(mvn -q -Dexpression=project.version help:evaluate -DforceStdout)" >> "$GITHUB_OUTPUT"
 
-      - name: Build native image (${{ matrix.maven-profile }})
+      - name: Build native image
         run: mvn clean -P${{ matrix.maven-profile }} -B -ntp -DskipTests native:compile
 
-      - name: Package ${{ matrix.arch }} artifacts
-        id: pkg
-        shell: bash
+      - name: Package artifacts
         run: |
           set -euo pipefail
           VER='${{ steps.ver.outputs.value }}'
@@ -81,7 +75,7 @@ jobs:
           test -f "$BIN" || { echo "❌ Missing binary at $BIN"; ls -lR target || true; exit 1; }
 
           mkdir -p dist
-          cp "$BIN" dist/snapzap   # normalize to lower-case name
+          cp "$BIN" dist/snapzap
 
           pushd dist >/dev/null
           TARBALL="snapzap-${VER}-${SUF}.tar.gz"
@@ -94,13 +88,12 @@ jobs:
           shasum -a 256 "$ZIPBALL" | tee "../${ZIPBALL}.sha256"
           popd >/dev/null
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: snapzap-${{ steps.ver.outputs.value }}-${{ matrix.suffix }}
           path: |
-            dist/snapzap-*.tar.gz
-            dist/snapzap-*.zip
+            dist/*.tar.gz
+            dist/*.zip
             *.sha256
 
   release:
@@ -115,35 +108,44 @@ jobs:
         id: ver
         run: echo "value=$(mvn -q -Dexpression=project.version help:evaluate -DforceStdout)" >> "$GITHUB_OUTPUT"
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: ./all-artifacts
 
-      - name: Build release body with real SHA256s
+      - name: Build release body
         id: body
-        shell: bash
         run: |
           set -euo pipefail
           VER='${{ steps.ver.outputs.value }}'
-      
+
           ARM_TGZ_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-arm64.tar.gz.sha256)
           X64_TGZ_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-x64.tar.gz.sha256)
           ARM_ZIP_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-arm64.zip.sha256)
           X64_ZIP_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-x64.zip.sha256)
-      
-          cat > body.md <<'EOF'
-          These native binaries were compiled with Github Actions, not my personal computer.
+
+          cat > body.md <<EOF
+          These native binaries were compiled with GitHub Actions, not my personal computer.
   
-          #Installation Instructions
+          # Installation Instructions
   
-          ###Option 1 - Manual
-          Download the zip file below for your architecture, then unzip the file into a folder that is in your PATH, such as `~/.local/bin`
+          ### Option 1 - Manual
+          Download the zip file for your architecture, then unzip into a folder in your PATH (e.g., ~/.local/bin).
   
-          ###Option 2 - Homebrew
-  
-          ```BASH
+          ### Option 2 - Homebrew
+          \`\`\`bash
           brew update
           brew tap EasyG0ing1/tools
           brew install snapzap
-          ```
+          \`\`\`
+          EOF
+          echo "body=$(cat body.md)" >> "$GITHUB_OUTPUT"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.value }}
+          name: SnapZap ${{ steps.ver.outputs.value }}
+          body_path: body.md
+          files: |
+            all-artifacts/**/snapzap-*.tar.gz
+            all-artifacts/**/snapzap-*.zip
+            all-artifacts/**/*.sha256
