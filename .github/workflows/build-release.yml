@@ -126,24 +126,24 @@ jobs:
         run: |
           set -euo pipefail
           VER='${{ steps.ver.outputs.value }}'
-
+      
           ARM_TGZ_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-arm64.tar.gz.sha256)
           X64_TGZ_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-x64.tar.gz.sha256)
           ARM_ZIP_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-arm64.zip.sha256)
           X64_ZIP_SHA=$(awk '{print $1}' all-artifacts/**/snapzap-"$VER"-macos-x64.zip.sha256)
-
+      
           cat > body.md <<'EOF'
-  These native binaries were compiled with Github Actions, not my personal computer.
+          These native binaries were compiled with Github Actions, not my personal computer.
   
-  #Installation Instructions
+          #Installation Instructions
   
-  ###Option 1 - Manual
-  Download the zip file below for your architecture, then unzip the file into a folder that is in your PATH, such as `~/.local/bin`
+          ###Option 1 - Manual
+          Download the zip file below for your architecture, then unzip the file into a folder that is in your PATH, such as `~/.local/bin`
   
-  ###Option 2 - Homebrew
+          ###Option 2 - Homebrew
   
-  ```BASH
-  brew update
-  brew tap EasyG0ing1/tools
-  brew install snapzap
-  ```
+          ```BASH
+          brew update
+          brew tap EasyG0ing1/tools
+          brew install snapzap
+          ```
