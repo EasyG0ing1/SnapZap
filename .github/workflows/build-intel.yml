@@ -125,18 +125,13 @@ jobs:
               prerelease: false
             });
             
-      - name: Download ARM artifact
+      - name: Download Intel and ARM artifact
         if: env.changed == 'true'
         run: |
-          echo "Version is $VERSION"
-          curl -sSL -f -o arm.tar.gz \
-            "https://github.com/EasyG0ing1/SnapZap/releases/download/${version}/snapzap-${version}-macos-arm64.tar.gz"
-
-      - name: Download Intel artifact
-        if: env.changed == 'true'
-        run: |
-          curl -sSL -f -o intel.tar.gz \
-            "https://github.com/EasyG0ing1/SnapZap/releases/download/${version}/snapzap-${version}-macos-x64.tar.gz"
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk use java 25.ea.28-graal
+          sdk use maven 4.0.0-rc-4
+          java -jar tools/GenBrewRuby.jar --NewVersion ${{ env.version }} --downloadArtifacts
           
       - name: Verify artifacts exist
         if: env.changed == 'true'
