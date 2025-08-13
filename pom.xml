@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.simtechdata</groupId>
     <artifactId>SnapZap</artifactId>
-    <version>1.0.14</version>
+    <version>1.0.15</version>
     <packaging>jar</packaging>
     <name>SnapZap</name>
     <description>SnapZap helps you clean up snapshots on APFS volumes in MacOS.</description>
