@@ -152,17 +152,19 @@ jobs:
         if: env.changed == 'true'
         run: |
           ARM_SHA=$(shasum -a 256 arm.tar.gz | awk '{print $1}')
-          x86_SHA=$(shasum -a 256 intel.tar.gz | awk '{print $1}')
+          x64_SHA=$(shasum -a 256 intel.tar.gz | awk '{print $1}')
           echo "ARM_SHA=$ARM_SHA" >> $GITHUB_ENV
-          echo "x86_SHA=$x86_SHA" >> $GITHUB_ENV
+          echo "x64_SHA=$x64_SHA" >> $GITHUB_ENV
 
       - name: Update Formula File
         if: env.changed == 'true'
         run: |
-          java -jar tools/GenBrewRuby.jar \
-          --NewVersion ${{ env.version }} \
-          --ARMSHA ${{ env.ARM_SHA }} \
-          --x86SHA ${{ env.x86_SHA }}
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk default java 25.ea.28-graal
+          sdk default maven 4.0.0-rc-4
+          sdk use java 25.ea.28-graal
+          sdk use maven 4.0.0-rc-4
+          java -jar tools/GenBrewRuby.jar --NewVersion ${{ env.version }} --ARMSHA ${{ env.ARM_SHA }} --x64SHA ${{ env.x64_SHA }}
           
       - name: Check out tap repository
         if: env.changed == 'true'
