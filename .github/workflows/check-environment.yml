@@ -6,6 +6,9 @@ jobs:
   check-environment:
     runs-on: macos-13
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Cache SDKMAN
         uses: actions/cache@v4
         with:
