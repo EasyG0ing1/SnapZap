@@ -137,11 +137,11 @@ jobs:
       - name: Verify artifacts exist
         if: env.changed == 'true'
         run: |
-          if [ ! -s arm.tar.gz ]; then
+          if [ ! -s snapzap-${version}-macos-arm64.tar.gz ]; then
             echo "❌ ARM artifact is missing or empty"
             exit 1
           fi
-          if [ ! -s intel.tar.gz ]; then
+          if [ ! -s snapzap-${version}-macos-x64.tar.gz ]; then
             echo "❌ Intel artifact is missing or empty"
             exit 1
           fi
@@ -150,8 +150,8 @@ jobs:
       - name: Calculate SHA256 checksums
         if: env.changed == 'true'
         run: |
-          ARM_SHA=$(shasum -a 256 arm.tar.gz | awk '{print $1}')
-          x64_SHA=$(shasum -a 256 intel.tar.gz | awk '{print $1}')
+          ARM_SHA=$(shasum -a 256 snapzap-${version}-macos-arm64.tar.gz | awk '{print $1}')
+          x64_SHA=$(shasum -a 256 snapzap-${version}-macos-x64.tar.gz | awk '{print $1}')
           echo "ARM_SHA=$ARM_SHA" >> $GITHUB_ENV
           echo "x64_SHA=$x64_SHA" >> $GITHUB_ENV
 
