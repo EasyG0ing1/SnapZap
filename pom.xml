@@ -221,5 +221,45 @@
                 </plugins>
             </build>
         </profile>
+        <!--local profile-->
+        <profile>
+            <id>local</id>
+            <build>
+                <plugins>
+                    <!-- GraalVM Native Maven Plugin -->
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${version-native-maven-plugin}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <target>${java.version}</target>
+                            <imageName>${project.name}</imageName>
+                            <mainClass>${mainClass}</mainClass>
+                            <verbose>true</verbose>
+                            <fallback>false</fallback>
+                            <buildArgs>
+                                <arg>-Djava.awt.headless=true</arg>
+                                <arg>--no-fallback</arg>
+                                <arg>--enable-url-protocols=http,https</arg>
+                                <arg>--initialize-at-build-time=org.sqlite.util.ProcessRunner</arg>
+                                <arg>--enable-native-access=ALL-UNNAMED</arg>
+                                <arg>-march=x86-64</arg>
+                                <arg>-H:-ReduceImplicitExceptionStackTraceInformation</arg>
+                                <arg>-H:+UnlockExperimentalVMOptions</arg>
+                                <arg>-H:+ReportExceptionStackTraces</arg>
+                                <arg>-O3</arg>
+                                <arg>-o ${project.basedir}/native-image/${project.name}</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>

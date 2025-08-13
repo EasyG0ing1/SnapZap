@@ -87,9 +87,9 @@ jobs:
       - name: Package x86 Artifact Into Zip and Tarball
         if: env.changed == 'true'
         run: |
-          mv /Users/runner/work/SnapZap/SnapZap/target/Intel/SnapZap /Users/runner/work/SnapZap/SnapZap/target/Intel/snapzap
-          tar -czvf snapzap-${version}-macos-x64.tar.gz -C /Users/runner/work/SnapZap/SnapZap/target/Intel snapzap
-          zip -j snapzap-${version}-macos-x64.zip /Users/runner/work/SnapZap/SnapZap/target/Intel/snapzap
+          mv target/Intel/SnapZap target/Intel/snapzap
+          tar -czvf snapzap-${version}-macos-x64.tar.gz -C target/Intel snapzap
+          zip -j snapzap-${version}-macos-x64.zip target/Intel/snapzap
 
       - name: Upload to GitHub Release
         if: env.changed == 'true'

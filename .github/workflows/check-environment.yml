@@ -1,0 +1,18 @@
+name: Test and Check The Environment
+on: workflow_run
+
+jobs:
+  check-environment:
+    runs-on: macos-13
+    steps:
+      - name: Cache SDKMAN
+        uses: actions/cache@v4
+        with:
+          path: ~/.sdkman
+          key: sdkman-${{ runner.os }}-${{ runner.arch }}-graal25ea28-maven4rc4
+
+      - name: Get Information
+        run: |
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          java --version
+          mvn --version
