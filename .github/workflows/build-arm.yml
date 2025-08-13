@@ -80,9 +80,15 @@ jobs:
         run: |
           source "$HOME/.sdkman/bin/sdkman-init.sh"
           mvn -PnativeARM -DskipTests native:compile
+
+
+      - name: Package Artifact Into Zip and Tarball
+        if: env.changed == 'true'
+        run: |
           mv target/ARM/SnapZap target/ARM/snapzap
           tar -czvf snapzap-${{ env.version }}-macos-arm64.tar.gz -C target/ARM snapzap
           zip -j snapzap-${{ env.version }}-macos-arm64.zip target/ARM/snapzap
+          
 
       - name: Upload to GitHub Release
         if: env.changed == 'true'
@@ -93,12 +99,12 @@ jobs:
           body: |
             These native binaries were compiled with Github Actions, not my personal computer.
 
-            #Installation Instructions
+            # Installation Instructions
 
-            ###Option 1 - Manual
+            ### Option 1 - Manual
             Download the zip file below for your architecture, then unzip the file into a folder that is in your PATH, such as `~/.local/bin`
 
-            ###Option 2 - Homebrew
+            ### Option 2 - Homebrew
 
             ```BASH
             brew update
