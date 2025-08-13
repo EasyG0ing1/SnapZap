@@ -136,9 +136,9 @@ jobs:
         if: env.changed == 'true'
         run: |
           ARM_SHA=$(shasum -a 256 arm.tar.gz | awk '{print $1}')
-          INTEL_SHA=$(shasum -a 256 intel.tar.gz | awk '{print $1}')
+          x86_SHA=$(shasum -a 256 intel.tar.gz | awk '{print $1}')
           echo "ARM_SHA=$ARM_SHA" >> $GITHUB_ENV
-          echo "INTEL_SHA=$x86_SHA" >> $GITHUB_ENV
+          echo "x86_SHA=$x86_SHA" >> $GITHUB_ENV
 
       - name: Update Formula File
         if: env.changed == 'true'
