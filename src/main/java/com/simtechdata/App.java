@@ -1,5 +1,6 @@
 package com.simtechdata;
 
+import com.simtechdata.bash.SnapCommands;
 import com.simtechdata.ui.Flow;
 import picocli.CommandLine;
 
@@ -122,6 +123,10 @@ public class App implements Callable<Integer> {
             if (Files.notExists(path)) {
                 System.out.println("Volume does not exist: " + volumePath);
                 return 1;
+            }
+            if (!SnapCommands.hasSnapshots(volumePath)) {
+                System.out.println("\n" + volumePath + " does not have any snapshots");
+                return 0;
             }
             Flow flow = new Flow(volumePath);
             if (listSnapshots) {

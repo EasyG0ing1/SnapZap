@@ -27,6 +27,7 @@ public class Snapshot {
     private final String  Name;
     private final String  XID;
     private final boolean purgeable;
+    private boolean spaceReserving = false;
 
     /**
      * Returns the disk or volume identifier that hosts this snapshot.
@@ -81,8 +82,20 @@ public class Snapshot {
         return purgeable;
     }
     
+    public void setSpaceReserving(boolean reserving) {
+        spaceReserving = reserving;
+    }
+
+    public boolean isSpaceReserving() {
+        return spaceReserving;
+    }
+
     @Override
     public String toString() {
-        return String.format("Disk: %s\nUUID: %s\nName: %s\nXID: %s\nPurgeable: %s\n", disk, UUID, Name, XID, (purgeable ? "YES" : "NO"));
+        String out = String.format("Disk: %s\nUUID: %s\nName: %s\nXID: %s\nPurgeable: %s", disk, UUID, Name, XID, (purgeable ? "YES" : "NO"));
+        if (spaceReserving) {
+            out += "\n\t***** This snapshot limits the minimum size of the APFS Container *****";
+        }
+        return out;
     }
 }

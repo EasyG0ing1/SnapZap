@@ -12,7 +12,7 @@ public class Flow {
     /**
      * Creates a new interactive flow for managing snapshots on the given volume path.
      * <p>
-     * This constructor initializes internal state from the supplied path:
+     * This constructor initializes the internal state from the supplied path:
      * - Derives the human-friendly volume name from the last segment of the path.
      * - Retrieves the current snapshots for the volume and indexes them for menu operations.
      *
@@ -76,12 +76,40 @@ public class Flow {
                 }
 
                 case "3" -> purgeAll();
+                
+                case "4" -> {
+                    
+                    String msg = """
+                                 \s
+                                       **** THIS IS A TIME MACHINE VOLUME ****
+                                 \s
+                                 Deleting snapshots on this volume will permanently delete
+                                 data that has been backed up and you will not be able to
+                                 recover that data. It is recommended that you do NOT delete
+                                 any snapshots from this volume.
+                                 \s
+                                 <Press Enter>
+                                 """;
+                    System.out.print(msg);
+                    new Scanner(System.in).nextLine();
+                }
 
                 default -> System.out.println("\nInvalid Choice\n");
             }
         }
     }
 
+    /**
+     * Displays the complete list of snapshots available for the configured volume.
+     * <p>
+     * This method delegates the task to the snapshot command layer, invoking
+     * the `SnapCommands.showSnapshotList` method with the current volume path.
+     * It outputs the list of snapshots to standard output.
+     * <p>
+     * Behavior and Side Effects:
+     * - Retrieves and prints all snapshots associated with the `volumePath`.
+     * - Operates in read-only mode, making no modifications to the snapshot state.
+     */
     public void showFullList() {
         SnapCommands.showSnapshotList(volumePath);
     }
@@ -100,13 +128,40 @@ public class Flow {
      * @return operation status code (0 = success or canceled by user, 1 = failure)
      */
     public int purgeAll() {
+        String warning;
+        boolean timemachine = false;
+        if (SnapCommands.isTimeMachineVolume(volumePath)) {
+            timemachine = true;
+            warning = """
+                      **** TIME MACHINE VOLUME ****
+                     \s
+                      Snapshots: %d
+                      Volume: %s
+                     \s
+                      This volume is a TIME MACHINE volume containing backup data.
+                      This action will DELETE ALL TIME MACHINE SNAPSHOTS on this drive.
+                      Deleting TIME MACHINE snapshots will delete backup data and you
+                      will lose it forever.
+                     \s
+                      Are you sure you want to proceed (Y/N)?\s""";
+        }
+        else {
+            warning = "\nWARNING: This will DELETE all %d snapshots on volume: %s\n\nAre you sure you want to proceed (Y/N)? ";
+        }
         int    count   = snapMap.size();
-        String warning = "\nWARNING: This will DELETE all %d snapshots on volume: %s\n\nAre you sure you want to proceed (Y/N)? ";
         System.out.printf(warning, count, volumePath);
         String response = new Scanner(System.in).nextLine();
-        if (!response.equalsIgnoreCase("Y")) {
+        if (response.equalsIgnoreCase("N")) {
             System.out.println("\nNo snapshots were deleted\n");
             return 0;
+        }
+        if (timemachine) {
+            System.out.print("\n Are you 100% sure? (Y/N) ");
+            response = new Scanner(System.in).nextLine();
+            if(response.equalsIgnoreCase("N")) {
+                System.out.println("\nNo snapshots were deleted\n");
+                return 0;
+            }
         }
         if (SnapCommands.purgeAll(volumePath)) {
             System.out.println("\n\nAll snapshots were deleted!\n");
@@ -128,6 +183,7 @@ public class Flow {
      * This method does not read input; it only renders the menu and prompt.
      */
     private void showMainMenu() {
+        boolean timemachine = SnapCommands.isTimeMachineVolume(volumePath);
         String menu = """
                      \s
                       There are %d snapshots on volume: %s
@@ -138,6 +194,23 @@ public class Flow {
                       Q) Quit
                      \s
                       Choice:\s""";
+        
+        if (timemachine) {
+            menu = """
+                     \s
+                      **** THIS IS A TIME MACHINE VOLUME - CHOSE OPTION 4 ****
+                     \s
+                      There are %d snapshots on volume: %s
+                     \s
+                      1) List Snapshots
+                      2) Purge One Snapshot
+                      3) Purge All Snapshots
+                      4) TIME MACHINE WARNING
+                      Q) Quit
+                     \s
+                      Choice:\s""";
+                   
+        }
         String out = String.format(menu, snapMap.size(), volumeName);
         System.out.print(out);
     }
