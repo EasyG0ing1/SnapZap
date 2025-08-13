@@ -85,9 +85,9 @@ jobs:
       - name: Package ARM Artifact Into Zip and Tarball
         if: env.changed == 'true'
         run: |
-          mv target/ARM/SnapZap target/ARM/snapzap
-          tar -czvf snapzap-${{ env.version }}-macos-arm64.tar.gz -C target/ARM snapzap
-          zip -j snapzap-${{ env.version }}-macos-arm64.zip target/ARM/snapzap
+          mv /Users/runner/work/SnapZap/SnapZap/target/ARM/SnapZap /Users/runner/work/SnapZap/SnapZap/target/ARM/snapzap
+          tar -czvf snapzap-${{ env.version }}-macos-arm64.tar.gz -C /Users/runner/work/SnapZap/SnapZap/target/ARM snapzap
+          zip -j snapzap-${{ env.version }}-macos-arm64.zip /Users/runner/work/SnapZap/SnapZap/target/ARM/snapzap
           
 
       - name: Upload to GitHub Release

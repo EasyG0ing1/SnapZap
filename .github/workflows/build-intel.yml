@@ -71,9 +71,9 @@ jobs:
       - name: Package x86 Artifact Into Zip and Tarball
         if: env.changed == 'true'
         run: |
-          mv target/Intel/SnapZap target/Intel/snapzap
-          tar -czvf snapzap-${version}-macos-x64.tar.gz -C target/Intel snapzap
-          zip -j snapzap-${version}-macos-x64.zip target/Intel/snapzap
+          mv /Users/runner/work/SnapZap/SnapZap/target/Intel/SnapZap /Users/runner/work/SnapZap/SnapZap/target/Intel/snapzap
+          tar -czvf snapzap-${version}-macos-x64.tar.gz -C /Users/runner/work/SnapZap/SnapZap/target/Intel snapzap
+          zip -j snapzap-${version}-macos-x64.zip /Users/runner/work/SnapZap/SnapZap/target/Intel/snapzap
 
       - name: Upload to GitHub Release
         if: env.changed == 'true'
@@ -109,17 +109,15 @@ jobs:
       - name: Download ARM artifact
         if: env.changed == 'true'
         run: |
-          VERSION="${{ env.version }}"
           echo "Version is $VERSION"
           curl -sSL -f -o arm.tar.gz \
-            "https://github.com/EasyG0ing1/SnapZap/releases/download/${VERSION}/snapzap-${VERSION}-macos-arm64.tar.gz"
+            "https://github.com/EasyG0ing1/SnapZap/releases/download/${version}/snapzap-${version}-macos-arm64.tar.gz"
 
       - name: Download Intel artifact
         if: env.changed == 'true'
         run: |
-          VERSION="${{ env.version }}"
           curl -sSL -f -o intel.tar.gz \
-            "https://github.com/EasyG0ing1/SnapZap/releases/download/${VERSION}/snapzap-${VERSION}-macos-x64.tar.gz"
+            "https://github.com/EasyG0ing1/SnapZap/releases/download/${version}/snapzap-${version}-macos-x64.tar.gz"
           
       - name: Verify artifacts exist
         if: env.changed == 'true'
@@ -140,7 +138,7 @@ jobs:
           ARM_SHA=$(shasum -a 256 arm.tar.gz | awk '{print $1}')
           INTEL_SHA=$(shasum -a 256 intel.tar.gz | awk '{print $1}')
           echo "ARM_SHA=$ARM_SHA" >> $GITHUB_ENV
-          echo "INTEL_SHA=$INTEL_SHA" >> $GITHUB_ENV
+          echo "INTEL_SHA=$x86_SHA" >> $GITHUB_ENV
 
       - name: Update Formula File
         if: env.changed == 'true'
@@ -148,7 +146,7 @@ jobs:
           java -jar tools/GenBrewRuby.jar \
           --NewVersion ${{ env.version }} \
           --ARMSHA ${{ env.ARM_SHA }} \
-          --x86SHA ${{ env.INTEL_SHA }}
+          --x86SHA ${{ env.x86_SHA }}
           
       - name: Check out tap repository
         if: env.changed == 'true'
