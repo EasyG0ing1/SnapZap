@@ -67,18 +67,19 @@ jobs:
           mvn -PnativeIntel native:compile
           mv target/Intel/* snapzap
           chmod +x snapzap
-
-      - name: Package Intel archives
+          
+      - name: Package x86 Artifact Into Zip and Tarball
         if: env.changed == 'true'
         run: |
-          tar -czf snapzap-${version}-macos-x64.tar.gz snapzap
-          zip -j snapzap-${version}-macos-x64.zip snapzap
+          mv target/Intel/SnapZap target/Intel/snapzap
+          tar -czvf snapzap-${version}-macos-x64.tar.gz -C target/Intel snapzap
+          zip -j snapzap-${version}-macos-x64.zip target/Intel/snapzap
 
       - name: Upload to GitHub Release
         if: env.changed == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ env.version }}
+          tag_name: ${{ env.version }}
           name: Version ${{ env.version }}
           files: |
             snapzap-${{ env.version }}-macos-x64.tar.gz
@@ -94,7 +95,7 @@ jobs:
             const release = await github.rest.repos.getReleaseByTag({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag: `v${process.env.version}`
+              tag: `${process.env.version}`
             });
 
             await github.rest.repos.updateRelease({
@@ -104,13 +105,72 @@ jobs:
               draft: false,
               prerelease: false
             });
-
-      - name: Trigger Homebrew Update
+            
+      - name: Download ARM artifact
         if: env.changed == 'true'
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: update-homebrew.yml
-          repo: EasyG0ing1/SnapZap
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          ref: master
-          inputs: '{"version": "${{ env.version }}"}'
+        run: |
+          VERSION="${{ env.version }}"
+          echo "Version is $VERSION"
+          curl -sSL -f -o arm.tar.gz \
+            "https://github.com/EasyG0ing1/SnapZap/releases/download/${VERSION}/snapzap-${VERSION}-macos-arm64.tar.gz"
+
+      - name: Download Intel artifact
+        if: env.changed == 'true'
+        run: |
+          VERSION="${{ env.version }}"
+          curl -sSL -f -o intel.tar.gz \
+            "https://github.com/EasyG0ing1/SnapZap/releases/download/${VERSION}/snapzap-${VERSION}-macos-x64.tar.gz"
+          
+      - name: Verify artifacts exist
+        if: env.changed == 'true'
+        run: |
+          if [ ! -s arm.tar.gz ]; then
+            echo "❌ ARM artifact is missing or empty"
+            exit 1
+          fi
+          if [ ! -s intel.tar.gz ]; then
+            echo "❌ Intel artifact is missing or empty"
+            exit 1
+          fi
+          echo "✅ Both artifacts found"
+
+      - name: Calculate SHA256 checksums
+        if: env.changed == 'true'
+        run: |
+          ARM_SHA=$(shasum -a 256 arm.tar.gz | awk '{print $1}')
+          INTEL_SHA=$(shasum -a 256 intel.tar.gz | awk '{print $1}')
+          echo "ARM_SHA=$ARM_SHA" >> $GITHUB_ENV
+          echo "INTEL_SHA=$INTEL_SHA" >> $GITHUB_ENV
+
+      - name: Update Formula File
+        if: env.changed == 'true'
+        run: |
+          java -jar tools/GenBrewRuby.jar \
+          --NewVersion ${{ env.version }} \
+          --ARMSHA ${{ env.ARM_SHA }} \
+          --x86SHA ${{ env.INTEL_SHA }}
+          
+      - name: Check out tap repository
+        if: env.changed == 'true'
+        run: |
+          git clone https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/EasyG0ing1/homebrew-tools.git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Replace Ruby File
+        if: env.changed == 'true'
+        run: |
+          cp snapzap.rb homebrew-tools/Formula/snapzap.rb
+          cd homebrew-tools
+          
+      - name: Commit and push changes
+        if: env.changed == 'true'
+        working-directory: homebrew-tools
+        run: |
+          if ! git diff --quiet; then
+            git add Formula/snapzap.rb
+            git commit -m "Bump snapzap to ${{ env.version }}"
+            git push
+          else
+            echo "No changes to commit."
+          fi

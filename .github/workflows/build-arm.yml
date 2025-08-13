@@ -49,7 +49,7 @@ jobs:
       - name: Create and push new tag
         if: env.changed == 'true'
         run: |
-          NEW_TAG="v${{ env.version }}"
+          NEW_TAG="${{ env.version }}"
           git tag -a "$NEW_TAG" -m "New release: $NEW_TAG"
           git push origin "$NEW_TAG"
         env:
@@ -82,7 +82,7 @@ jobs:
           mvn -PnativeARM -DskipTests native:compile
 
 
-      - name: Package Artifact Into Zip and Tarball
+      - name: Package ARM Artifact Into Zip and Tarball
         if: env.changed == 'true'
         run: |
           mv target/ARM/SnapZap target/ARM/snapzap
@@ -94,7 +94,7 @@ jobs:
         if: env.changed == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ env.version }}
+          tag_name: ${{ env.version }}
           name: Version ${{ env.version }}
           body: |
             These native binaries were compiled with Github Actions, not my personal computer.
