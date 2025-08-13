@@ -39,15 +39,33 @@ jobs:
           else
             echo "changed=true" >> $GITHUB_ENV
           fi
-          
-      - name: Install SDKMAN and GraalVM
+
+      - name: Cache SDKMAN
+        uses: actions/cache@v4
+        with:
+          path: ~/.sdkman
+          key: sdkman-${{ runner.os }}-${{ runner.arch }}-graal25ea28-maven4rc4
+
+
+      - name: Set up GraalVM JDK
         if: env.changed == 'true'
         run: |
-          curl -s "https://get.sdkman.io" | bash
+          if [ ! -f "$HOME/.sdkman/bin/sdkman-init.sh" ]; then
+            curl -s "https://get.sdkman.io" | bash
+          fi
+
           source "$HOME/.sdkman/bin/sdkman-init.sh"
-          sdk install java 25.ea.28-graal
+
+          # Install only if not already cached
+          if [ ! -d "$HOME/.sdkman/candidates/java/25.ea.28-graal" ]; then
+            sdk install java 25.ea.28-graal
+          fi
+
+          if [ ! -d "$HOME/.sdkman/candidates/maven/4.0.0-rc-4" ]; then
+            sdk install maven 4.0.0-rc-4
+          fi
+
           sdk use java 25.ea.28-graal
-          sdk install maven 4.0.0-rc-4
           sdk use maven 4.0.0-rc-4
           java -version
           mvn -version
@@ -65,8 +83,6 @@ jobs:
         run: |
           source "$HOME/.sdkman/bin/sdkman-init.sh"
           mvn -PnativeIntel native:compile
-          mv target/Intel/* snapzap
-          chmod +x snapzap
           
       - name: Package x86 Artifact Into Zip and Tarball
         if: env.changed == 'true'
