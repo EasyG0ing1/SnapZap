@@ -1,5 +1,6 @@
 name: Test and Check The Environment
-on: workflow_run
+on:
+  workflow_dispatch:
 
 jobs:
   check-environment:
