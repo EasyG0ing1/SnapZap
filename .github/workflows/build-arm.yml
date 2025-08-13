@@ -56,6 +56,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache SDKMAN
+        if: env.changed == 'true'
         uses: actions/cache@v4
         with:
             path: ~/.sdkman
@@ -96,6 +97,8 @@ jobs:
         if: env.changed == 'true'
         run: |
           source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk use java 25.ea.28-graal
+          sdk use maven 4.0.0-rc-4
           mvn -PnativeARM native:compile
 
       - name: Package ARM Artifact Into Zip and Tarball
