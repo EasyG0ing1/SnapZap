@@ -132,7 +132,6 @@ jobs:
           sdk use java 25.ea.28-graal
           sdk use maven 4.0.0-rc-4
           java -jar tools/GenBrewRuby.jar --NewVersion ${version} --downloadArtifacts
-          ls -l
           
       - name: Verify artifacts exist
         if: env.changed == 'true'
